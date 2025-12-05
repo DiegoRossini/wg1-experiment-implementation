@@ -18,28 +18,19 @@ PARENT_FOLDER = Path(__file__).parent
 LANG_DIR = PARENT_FOLDER / 'ui_data/interface_language/'
 IMAGE_DIR = PARENT_FOLDER / 'ui_data/interface_icons/'
 
-if os.path.exists(
-        PARENT_FOLDER / f'data/stimuli_MultiplEYE_{local_config.LANGUAGE}_{local_config.COUNTRY_CODE}_'
-                        f'{local_config.CITY}_{local_config.LAB_NUMBER}_{local_config.YEAR}/'
-                        f'config/stimulus_order_versions_{local_config.LANGUAGE}_'
-                        f'{local_config.COUNTRY_CODE}_'
-                        f'{local_config.LAB_NUMBER}.csv'
-        ):
-    df = pd.read_csv(
-        PARENT_FOLDER / f'data/stimuli_MultiplEYE_{local_config.LANGUAGE}_{local_config.COUNTRY_CODE}_'
-                        f'{local_config.CITY}_{local_config.LAB_NUMBER}_{local_config.YEAR}/'
-                        f'config/stimulus_order_versions_{local_config.LANGUAGE}_'
-                        f'{local_config.COUNTRY_CODE}_'
-                        f'{local_config.LAB_NUMBER}.csv', sep=',', encoding='utf8'
-        )
+STIMULUS_ORDER_CSV_PATH = (
+    PARENT_FOLDER / f'data/stimuli_{local_config.DATA_COLLECTION_NAME}/'
+                    f'config/stimulus_order_versions_{local_config.DATA_COLLECTION_NAME}.csv'
+)
+
+if os.path.exists(STIMULUS_ORDER_CSV_PATH):
+    df = pd.read_csv(STIMULUS_ORDER_CSV_PATH, sep=',', encoding='utf8')
     PARTICIPANT_IDS = sorted(df.participant_id.dropna().astype(int).values.tolist())
 else:
     PARTICIPANT_IDS = []
 
-if not os.path.exists(LANG_DIR / f'experiment_interface_{local_config.LANGUAGE.lower()}.json'):
-    GUI_LANG = 'experiment_interface_en'
-else:
-    GUI_LANG = f'experiment_interface_{local_config.LANGUAGE.lower()}'
+# Use English interface by default
+GUI_LANG = 'experiment_interface_en'
 
 with open(LANG_DIR / f'{GUI_LANG}.json', 'r', encoding='utf8') as translation_file:
     translations = json.load(translation_file)
@@ -94,10 +85,10 @@ def parse_args():
     lab_settings.add_argument(
         '--data-collection-name',
         metavar='Data collection name',
-        help='This is the name or your data collection.',
+        help='This is the name of your data collection.',
         type=str,
+        default=local_config.DATA_COLLECTION_NAME,
     )
-
 
     lab_settings.add_argument(
         '--dummy_mode',
@@ -172,48 +163,23 @@ def start_experiment_session():
     arguments = parse_args()
     settings_changed = False
 
-    # TODO Diego: delete all code that is realted to language, city, etc. the code should only depend on the data collection name
-    if arguments['language'] == 'toy':
-        arguments['session_mode'] = SessionMode.MINIMAL
-
-    # if any changes have been made to the lab settings, we update the local_config.py file
-    if arguments['language'] != local_config.LANGUAGE:
-        settings_changed = True
-
-    if arguments['country_code'] != local_config.COUNTRY_CODE:
-        settings_changed = True
-
-    if arguments['lab_number'] != local_config.LAB_NUMBER:
+    # Check if settings have changed
+    if arguments['data_collection_name'] != local_config.DATA_COLLECTION_NAME:
         settings_changed = True
 
     if arguments['dummy_mode'] != local_config.DUMMY_MODE:
         settings_changed = True
 
-    if arguments['city'] != local_config.CITY:
-        settings_changed = True
-
-    if arguments['year'] != local_config.YEAR:
-        settings_changed = True
-
     if settings_changed and not arguments['continue_core_session']:
         with open(PARENT_FOLDER / 'local_config.py', 'w') as f:
-            # TODO Diego: delete and replace by data collection name
-            f.write(f'LANGUAGE = "{arguments["language"]}"\n')
-            f.write(f'COUNTRY_CODE = "{arguments["country_code"]}"\n')
-            f.write(f'CITY = "{arguments["city"]}"\n')
-            f.write(f'YEAR = {arguments["year"]}\n')
-            f.write(f'LAB_NUMBER = {arguments["lab_number"]}\n')
+            f.write(f'DATA_COLLECTION_NAME = "{arguments["data_collection_name"]}"\n')
             f.write(f'DUMMY_MODE = {arguments["dummy_mode"]}\n')
 
         print(
             'The lab settings have been updated.\n\n'
             f'You will run a {arguments["session_mode"].value} session.\n'
             f'The participant ID is {arguments["participant_id"]}.\n'
-            f'The language is {arguments["language"]}.\n'
-            f'The country code is {arguments["country_code"]}.\n'
-            f'The lab number is {arguments["lab_number"]}.\n'
-            f'The city is {arguments["city"]}.\n'
-            f'The estimated end year is {arguments["year"]}.\n'
+            f'The data collection name is {arguments["data_collection_name"]}.\n'
             f'The dummy mode is {arguments["dummy_mode"]}.\n\n'
             'Please restart the program to apply the changes and run the experiment.\n'
             'Otherwise please click edit or close and restart the script.'
@@ -290,16 +256,11 @@ def start_experiment_session():
         arguments['instruction_screens_path'] = constants.EXP_ROOT_PATH / constants.PARTICIPANT_INSTRUCTIONS_CSV
         arguments['question_screens_path'] = (constants.EXP_ROOT_PATH / constants.QUESTION_IMAGE_DIR /
                                               f'question_images_version_{stimulus_order_version}'
-                                              / f'multipleye_comprehension_questions_{arguments["language"]}_question_'
-                                                f'images_version_{stimulus_order_version}_with_img_paths.csv')
+                                              / f'{constants.DATA_COLLECTION_NAME}_comprehension_questions_'
+                                                f'question_images_version_{stimulus_order_version}_with_img_paths.csv')
 
-        arguments.pop('language', None)
-        arguments.pop('full_language', None)
-        arguments.pop('country_code', None)
-        arguments.pop('lab_number', None)
+        arguments.pop('data_collection_name', None)
         arguments.pop('dummy_mode', None)
-        arguments.pop('city', None)
-        arguments.pop('year', None)
 
         testing_images = check_if_testing_images()
 

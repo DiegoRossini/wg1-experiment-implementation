@@ -5,7 +5,10 @@ import os
 from pathlib import Path
 from typing import Any
 import pandas as pd
-import pylink
+try:
+    import pylink
+except ImportError:
+    pylink = None  # Running in dummy mode without EyeLink
 from PIL import Image
 from pygaze.eyetracker import EyeTracker
 
@@ -69,22 +72,15 @@ class Experiment:
             mousevisible=False,
         )
 
-        if session_mode.value != 'minimal':
-            # TODO Diego: set language and country code to data collection name, remove the attribute of experiment that reference language etc.
-            self.language = constants.LANGUAGE
-            self.country_code = constants.COUNTRY_CODE
-        else:
-            self.language = 'toy'
-            self.country_code = 'x'
+        self.data_collection_name = constants.DATA_COLLECTION_NAME
 
         self.screen.draw_image(
             image=Path(
                 constants.EXP_ROOT_PATH / constants.PARTICIPANT_INSTRUCTIONS_DIR /
-                f'empty_screen_{self.language}.png'
+                f'empty_screen_{self.data_collection_name}.png'
             ),
         )
 
-        # TODO Diego: edf file name cannot be longer than 8 characters!!!
         edf_file_path = f'{participant_id}neoit.edf'
 
         absolute_edf_file_path = f'{abs_exp_path}/{edf_file_path}'

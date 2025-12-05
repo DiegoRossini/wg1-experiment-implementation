@@ -30,7 +30,6 @@ def create_data_logfile(
     return lf
 
 
-# TODO Diego: we need to rewrite this to load the stimuli correctly
 def get_stimuli_screens(
         path_data_csv: str | Path,
         path_question_csv: str | Path,
@@ -72,11 +71,6 @@ def get_stimuli_screens(
         stimulus_order = stimulus_order[[c for c in stimulus_order.columns if c.startswith('trial') or c.startswith('practice_trial')]].values[0].tolist()
     except IndexError:
         raise ValueError(f'No stimulus order found for version {order_version}!')
-
-    # if we run the exp in test mode or minimal mode, we just take the items that are there
-    # in test mode there can be stimuli missing that will be there in the final experiment
-    if session_mode.value == 'test' or session_mode.value == 'minimal':
-        stimulus_order = stimulus_df['stimulus_id'].tolist()
 
     continue_now = False
     total_page_count = 0
@@ -165,23 +159,21 @@ def get_stimuli_screens(
 
         questions = []
 
-        # sample one question order for this trial
-        question_order = question_randomization_df.sample(1)
+        # Fixed question order: Global -> Bridging -> Local
+        # condition 3 (global), then condition 2 (bridging), then condition 1 (local)
+        # Each condition has question 1 and question 2
+        question_order = [31, 32, 21, 22, 11, 12]
+        question_order_version_no = 0  # Fixed order, not from randomization CSV
 
-        question_order_version_no = question_order['question_order_version'].values[0]
         logfile.write(
             [
                 get_time(),
                 'action',
-                f'using question order version {question_order_version_no} for stimulus {stimulus_id}, trial {trial_id}',
+                f'using fixed question order (Global->Bridging->Local) for stimulus {stimulus_id}, trial {trial_id}',
                 path_question_csv, 'question order',
             ]
         )
 
-        question_order.drop(columns=['question_order_version'], inplace=True)
-
-        # convert the question order to a list
-        question_order = question_order.values[0].tolist()
         question_order_versions.append([question_order_version_no] + question_order)
 
         for question_number in question_order:
@@ -210,12 +202,8 @@ def get_stimuli_screens(
             # get the question row
             row = row.iloc[0]
 
-            # TODO Diego: you don't have the snippet number, exclude this
-            snippet_no = row['snippet_no']
-
-            # the question id is a 4 or 5 digit number that is unique for each question
-            # TODO Diego: you don't have the snippet number, exclude this
-            question_id = str(stimulus_id) + str(snippet_no) + str(condition_no) + str(question_no)
+            # the question id is a unique identifier for each question
+            question_id = str(stimulus_id) + str(condition_no) + str(question_no)
 
             question_img_path = row['question_img_path']
             target = row['target']

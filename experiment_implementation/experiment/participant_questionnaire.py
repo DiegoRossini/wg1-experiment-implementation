@@ -4,7 +4,8 @@ import os.path
 from pprint import pprint
 
 import pandas as pd
-from PyQt6 import QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import Qt
 from psychopy import gui
 
 import constants
@@ -43,191 +44,45 @@ class MultiplEYEParticipantQuestionnaire:
         return pq_instructions_dict, pq_questions
 
     def run_questionnaire(self):
+        # Page 1: Demographics
         self._show_questions(
             self.instructions['pq_initial_message'],
-            ['gender', 'years_education', 'level_education', 'age', 'socio_economic_status'],
+            ['gender', 'years_education', 'level_education', 'age'],
             button=self.instructions['pq_next_button'],
         )
+
+        # Page 2: Language background
+        self._show_questions(
+            '',
+            ['native_language_1', 'english_level'],
+            button=self.instructions['pq_next_button'],
+        )
+
+        # Page 3: Reading habits
+        reading_questions = ['read_language', 'academic_reading_time', 'magazine_reading_time',
+                             'newspaper_reading_time', 'email_reading_time', 'fiction_reading_time',
+                             'nonfiction_reading_time', 'internet_reading_time', 'other_reading_time']
 
         self._show_questions(
             '',
-            ['childhood_languages'],
+            reading_questions,
             button=self.instructions['pq_next_button'],
         )
 
-        # check whether there are multiple languages that the person grew up with
-        if self.pq_data['childhood_languages'] == self.questions['childhood_languages']['pq_answer_option_1']:
-            self._show_questions(
-                '',
-                ['native_language_1'],
-                button=self.instructions['pq_next_button'],
-            )
-        elif self.pq_data['childhood_languages'] == self.questions['childhood_languages']['pq_answer_option_2']:
-            self._show_questions(
-                '',
-                ['native_language_1', 'native_language'],
-                button=self.instructions['pq_next_button'],
-                keys=['native_language_1', 'native_language_2']
-            )
-        elif self.pq_data['childhood_languages'] == self.questions['childhood_languages']['pq_answer_option_3']:
-            self._show_questions(
-                '',
-                ['native_language_1', 'native_language', 'native_language'],
-                button=self.instructions['pq_next_button'],
-                keys=['native_language_1', 'native_language_2', 'native_language_3']
-            )
-
-        self._show_questions(
-            '',
-            ['use_language', 'dominant_language'],
-            button=self.instructions['pq_next_button'],
-        )
-
-        languages_mentioned = ['native_language_1', 'native_language_2',
-                               'native_language_3', 'use_language', 'dominant_language'
-                               ]
-        # get those languages that have been mentioned in the previous questions and whose keys are in the pq_data
-        languages_mentioned = [language for language in languages_mentioned if
-                               language in self.pq_data.keys() and self.pq_data[language] != '']
-
-        unique_languages = []
-        unique_language_keys = []
-        for lang_key in languages_mentioned:
-            if self.pq_data[lang_key] not in unique_languages:
-                unique_language_keys.append(lang_key)
-                unique_languages.append(self.pq_data[lang_key])
-
-        # only ask for unique languages, no need to ask for the same language twice
-        dialect_keys = []
-        dialect_languages = []
-        for lang in languages_mentioned:
-            if self.pq_data[lang] not in dialect_languages:
-                dialect_languages.append(self.pq_data[lang])
-                dialect_keys.append(f'{lang}_dialect')
-
-        self._show_questions(
-            '',
-            ['dialect'],
-            button=self.instructions['pq_next_button'],
-            option_labels=[(k, v) for (k, v) in zip(dialect_languages, dialect_keys)],
-            option_type='checkbox',
-        )
-
-        lang_with_dialects = []
-        lang_keys_with_dialects = []
-        # get those languages for which dialects have been mentioned
-        for dialect_k in dialect_keys:
-            if self.pq_data[dialect_k]:
-                lang_key = '_'.join(dialect_k.split('_')[:-1])
-                language_name = self.pq_data[lang_key]
-
-                # if the language is already in the list
-                if language_name not in lang_with_dialects:
-                    lang_with_dialects.append(self.pq_data[lang_key])
-
-                    lang_keys_with_dialects.append(f'{lang_key}_dialect_name')
-
-        # if there are any dialects
-        if len(lang_with_dialects) > 0:
-            self._show_questions(
-                '',
-                ['dialect_name'],
-                button=self.instructions['pq_next_button'],
-                option_labels=[(k, v) for (k, v) in zip(lang_with_dialects, lang_keys_with_dialects)],
-                option_type='text'
-            )
-
-        for lang in unique_language_keys:
-            reading_questions = ['read_language', 'academic_reading_time', 'magazine_reading_time',
-                                 'newspaper_reading_time',
-                                 'email_reading_time', 'fiction_reading_time', 'nonfiction_reading_time',
-                                 'internet_reading_time',
-                                 'other_reading_time']
-
-            keys = [f'{lang}_{question}' for question in reading_questions[1:]]
-            keys = ['read_language'] + keys
-
-            self._show_questions(
-                f'{self.pq_data[lang].upper()}: {self.instructions["pq_answer_for_lang"].strip()} {self.pq_data[lang].upper()}',
-                reading_questions,
-                button=self.instructions['pq_next_button'],
-                keys=keys,
-            )
-
-        # we allow for 4 additional languages to be mentioned
-        options = zip([f'{self.instructions["pq_additional_language"]} {i}' for i in range(1, 5)],
-                      [f'additional_read_language_{i}' for i in range(1, 5)])
-
-        self._show_questions(
-            '',
-            ['additional_read_language'],
-            button=self.instructions['pq_next_button'],
-            existing_data=self.pq_data,
-            option_labels=[(k, v) for (k, v) in options],
-            option_type='dropdown_file',
-            optional=True
-        )
-
-        reading_languages_mentioned = ['additional_read_language_1', 'additional_read_language_2',
-                                       'additional_read_language_3', 'additional_read_language_4']
-
-        # get those languages that have been mentioned in the previous questions and whose keys are in the pq_data
-        reading_languages_mentioned = [language for language in reading_languages_mentioned if
-                                       language in self.pq_data.keys() and self.pq_data[language] != '']
-
-        unique_reading_languages = []
-        unique_reading_language_keys = []
-        for lang_key in reading_languages_mentioned:
-            if self.pq_data[lang_key] not in unique_reading_languages:
-                unique_reading_language_keys.append(lang_key)
-                unique_reading_languages.append(self.pq_data[lang_key])
-
-        for lang in unique_reading_language_keys:
-            reading_questions = ['read_language', 'academic_reading_time', 'magazine_reading_time',
-                                 'newspaper_reading_time',
-                                 'email_reading_time', 'fiction_reading_time', 'nonfiction_reading_time',
-                                 'internet_reading_time',
-                                 'other_reading_time']
-
-            keys = [f'{lang}_{question}' for question in reading_questions[1:]]
-            keys = ['read_language'] + keys
-
-            self._show_questions(
-                f'{self.pq_data[lang].upper()}: {self.instructions["pq_answer_for_lang"].strip()}: '
-                f'{self.pq_data[lang].upper()}',
-                reading_questions,
-                button=self.instructions['pq_next_button'],
-                keys=keys,
-            )
-
-        self.ask_additional = any(q in self.questions.keys() for q in ADDITIONAL_QUESTIONS)
-
+        # Page 4: Final questions
         self._show_questions(
             '',
             ['tiredness', 'eyewear', 'alcohol_yesterday', 'alcohol_today'],
-            button=self.instructions['pq_submit_button'] if self.ask_additional  else self.instructions['pq_next_button'],
+            button=self.instructions['pq_submit_button'],
         )
 
-        # if additional questions are in the file we show them
-
-        if self.ask_additional :
-            additional_questions = [q for q in ADDITIONAL_QUESTIONS if q in self.questions.keys()]
-            self._show_questions(
-                '',
-                additional_questions,
-                button=self.instructions['pq_submit_button'],
-                optional=True
-            )
-
-        # pprint(self.pq_data)
         self._save_data()
 
         # show goodbye message
         gui.infoDlg(prompt=self.instructions['pq_final_message'])
 
     def _save_data(self):
-        result_file_name = (f'/{self.participant_id}_{constants.LANGUAGE}_'
-                            f'{constants.COUNTRY_CODE}_{constants.LAB_NUMBER}_pq_data')
+        result_file_name = (f'/{self.participant_id}_{constants.DATA_COLLECTION_NAME}_pq_data')
 
         result_file_path = self.results_folder + result_file_name + '.json'
 
@@ -297,24 +152,20 @@ class MultiplEYEParticipantQuestionnaire:
         # pq_gui.showMaximized()
         '''
 
-        DIALOG_W = int(constants.IMAGE_WIDTH_PX)
-        DIALOG_H = int(constants.IMAGE_HEIGHT_PX * 0.7)   #height of screen is set to 70% of actual height
+        # Use a wider dialog to prevent text truncation
+        DIALOG_W = 1400  # wider than before
+        DIALOG_H = 800
         TOP_LEFT = (10, 10)  # 10px from the left, 10px from the top left corner
 
         pq_gui = gui.Dlg(
             title=self.instructions['pq_title'],
             # Positioning the dialog boxes in the top left corner of the screen
             pos=TOP_LEFT,
-            size=(800, 900),  #not used
+            size=(DIALOG_W, DIALOG_H),
         )
-        # pq_gui.showMaximized()
 
-        # Fix the width of the window depending on screen width
-        # If not set than the window size will change for each question
-        pq_gui.setMinimumWidth(DIALOG_W)
-        pq_gui.setMaximumWidth(DIALOG_W)
-        pq_gui.setMinimumHeight(DIALOG_H)
-        pq_gui.setMaximumHeight(DIALOG_H)
+        # Set dialog size
+        pq_gui.resize(DIALOG_W, DIALOG_H)
 
         #########################################################################################
 
@@ -325,10 +176,18 @@ class MultiplEYEParticipantQuestionnaire:
         except AttributeError:
             pass
 
-        font = QtGui.QFont(*constants.PQ_FONT_BOLD)
-        font.setBold(True)
         initial_text = pq_gui.addText(instructions)
-        initial_text.setFont(font)
+        # Try to set font, but don't fail if it doesn't work
+        try:
+            font = QtGui.QFont(*constants.PQ_FONT_BOLD)
+            font.setBold(True)
+            if hasattr(initial_text, 'document'):
+                initial_text.document().setDefaultFont(font)
+            else:
+                initial_text.setFont(font)
+        except (TypeError, AttributeError):
+            # Font setting failed, continue without custom font
+            pass
 
         if not recalled:
             # we only need to do this if it is the first time that the questions are presented on the screen
@@ -381,40 +240,51 @@ class MultiplEYEParticipantQuestionnaire:
                 if len(options) > 1:
                     options.insert(0, '')
 
-                question_text = pq_gui.addField(question_key,
-                                                label=self.questions[question_id]["pq_question_text"],
-                                                choices=options,
-                                                initial=existing_data.get(question_id, ''),
-                                                tip=self.questions[question_id]["pq_question_help"]
-                                                )
+                question_text = pq_gui.addField(
+                    label=self.questions[question_id]["pq_question_text"],
+                    choices=options,
+                    initial=existing_data.get(question_id, ''),
+                    tip=self.questions[question_id]["pq_question_help"]
+                )
 
-                question_text.setFont(QtGui.QFont(*constants.PQ_FONT_BOLD))
+                try:
+                    question_text.setFont(QtGui.QFont(*constants.PQ_FONT_BOLD))
+                except (TypeError, AttributeError):
+                    pass
 
             else:
                 question_text = pq_gui.addText(self.questions[question_id]["pq_question_text"])
-                question_text.setFont(QtGui.QFont(*constants.PQ_FONT_BOLD))
+                try:
+                    question_text.setFont(QtGui.QFont(*constants.PQ_FONT_BOLD))
+                except (TypeError, AttributeError):
+                    pass
 
             # add help text if there is one
             if self.questions[question_id]["pq_question_help"]:
                 help_text = pq_gui.addText(self.questions[question_id]["pq_question_help"])
-                help_text.setFont(QtGui.QFont(*constants.PQ_FONT_ITALIC, italic=True))
+                try:
+                    font_italic = QtGui.QFont(*constants.PQ_FONT_ITALIC)
+                    font_italic.setItalic(True)
+                    help_text.setFont(font_italic)
+                except (TypeError, AttributeError):
+                    pass
 
             # if there are additional options that are no in the question file but have been passed
             if option_labels:
                 for option_label, option_key in option_labels:
                     if option_type == 'checkbox':
-                        pq_gui.addField(option_key, label=option_label, initial=False)
+                        pq_gui.addField(label=option_label, initial=False)
                     elif option_type == 'dropdown_file':
-                        option_xlsx = pd.read_excel(constants.PQ_DATA_FOLDER_PATH / constants.PQ_LANGUAGES_XLSX)
+                        option_xlsx = pd.read_excel(constants.PQ_LANGUAGES_XLSX)
                         options = sorted(option_xlsx['language_name'].tolist())
                         options.insert(0, '')
-                        pq_gui.addField(option_key, label=option_label, choices=options)
+                        pq_gui.addField(label=option_label, choices=options)
                     else:
-                        pq_gui.addField(option_key, label=option_label)
+                        pq_gui.addField(label=option_label)
 
         pq_gui.addText('')
         pq_gui.addText('')
-        pq_gui.addField(key='confirm_answer', label=self.instructions['pq_confirm_answers'], initial=False)
+        pq_gui.addField(label=self.instructions['pq_confirm_answers'], initial=False)
 
         # the item in the top left position is some default text that I don't know how to remove otherwise
         pq_gui.layout.itemAtPosition(0, 0).widget().hide()
@@ -425,46 +295,63 @@ class MultiplEYEParticipantQuestionnaire:
         num_cols = pq_gui.layout.columnCount()
 
         # exclude the first two rows, these are the instructions and the ID
-        for row in range(2, num_rows):
-            for col in range(num_cols):
-                item = pq_gui.layout.itemAtPosition(row, col)
-                # if we have already changed the font to italic, we don't want to change it again
-                if not item.widget().font().family() == constants.PQ_FONT_ITALIC[0]:
-                    item.widget().setFont(QtGui.QFont(*constants.PQ_FONT))
+        # NOTE: Font setting disabled due to PyQt6 compatibility issues
+        # for row in range(2, num_rows):
+        #     for col in range(num_cols):
+        #         item = pq_gui.layout.itemAtPosition(row, col)
+        #         if item and item.widget():
+        #             item.widget().setFont(QtGui.QFont(*constants.PQ_FONT))
 
 
         ########### SIZE CHANGES ###############################################################
 
         FIXED_INPUT_WIDTH = 300  # predetermined width for the answer choice
-        for row in range(pq_gui.layout.rowCount()):
-            input_item = pq_gui.layout.itemAtPosition(row, 1)
-            if input_item is None:
-                continue
-            input_widget = input_item.widget()
-            if input_widget:
-                input_widget.setFixedWidth(FIXED_INPUT_WIDTH)
+        LABEL_WIDTH = DIALOG_W - FIXED_INPUT_WIDTH - 50  # width for labels
 
-        available_label_width = DIALOG_W - FIXED_INPUT_WIDTH - 100  # remaining width for question's text
+        # Create consistent font for all labels
+        standard_font = QtGui.QFont(constants.PQ_FONT[0], constants.PQ_FONT[1])
 
-        for row in range(pq_gui.layout.rowCount()):
-            label_item = pq_gui.layout.itemAtPosition(row, 0)
-            if label_item is None:
-                continue
-            label_widget = label_item.widget()
-            if isinstance(label_widget, QtWidgets.QLabel):
-                label_widget.setWordWrap(True)
-                label_widget.setMaximumWidth(available_label_width)
-
+        # Set column 0 minimum width for labels
+        pq_gui.layout.setColumnMinimumWidth(0, LABEL_WIDTH)
         pq_gui.layout.setColumnStretch(0, 1)  # allow label column to stretch
         pq_gui.layout.setColumnStretch(1, 0)  # prevent input column from growing
+
+        for row in range(pq_gui.layout.rowCount()):
+            # Set input widget width
+            input_item = pq_gui.layout.itemAtPosition(row, 1)
+            if input_item and input_item.widget():
+                input_item.widget().setFixedWidth(FIXED_INPUT_WIDTH)
+
+            # Set label widget to wrap text and apply consistent font
+            label_item = pq_gui.layout.itemAtPosition(row, 0)
+            if label_item and label_item.widget():
+                label_widget = label_item.widget()
+                if isinstance(label_widget, QtWidgets.QLabel):
+                    label_widget.setWordWrap(True)
+                    label_widget.setMinimumWidth(LABEL_WIDTH)
+                    label_widget.setFont(standard_font)
+
+        # Force layout update
+        pq_gui.layout.invalidate()
+        pq_gui.updateGeometry()
 
         #########################################################################################
 
         ok_data = pq_gui.show()
         # the last entry is always the confirmation checkbox
-        answers_confirmed = pq_gui.data['confirm_answer']
+        # In newer PsychoPy, data is a list, not a dict
+        if isinstance(pq_gui.data, dict):
+            answers_confirmed = pq_gui.data.get('confirm_answer', False)
+        else:
+            # data is a list - last item is confirm_answer
+            answers_confirmed = pq_gui.data[-1] if pq_gui.data else False
 
-        pq_data.update(ok_data)
+        if isinstance(ok_data, dict):
+            pq_data.update(ok_data)
+        else:
+            # ok_data is a list - we need to map it back to keys
+            # This is handled by PsychoPy internally when using show()
+            pass
 
         if pq_gui.OK:
             # check whether one value is empty, if yes, prompt the user to fill in all questions

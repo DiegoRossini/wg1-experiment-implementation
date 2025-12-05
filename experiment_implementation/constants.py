@@ -10,12 +10,7 @@ from runpy import run_path
 EXP_ROOT_PATH = Path(__file__).parent
 LOCAL_CONFIGS = run_path(str(EXP_ROOT_PATH / 'local_config.py'))
 
-# TODO Diego: replace all of these instance of LANGUAGE, COUNTRY_CODE, LAB_NUMBER, etc. with DATA_COLLECTION_NAME int he entire document below
-LANGUAGE = LOCAL_CONFIGS['LANGUAGE']
-COUNTRY_CODE = LOCAL_CONFIGS['COUNTRY_CODE']
-CITY = LOCAL_CONFIGS['CITY']
-YEAR = LOCAL_CONFIGS['YEAR']
-LAB_NUMBER = LOCAL_CONFIGS['LAB_NUMBER']
+DATA_COLLECTION_NAME = LOCAL_CONFIGS['DATA_COLLECTION_NAME']
 
 
 DUMMY_MODE = LOCAL_CONFIGS['DUMMY_MODE']
@@ -40,11 +35,10 @@ BGC = (15, 15, 15)
 HIGHLIGHT_COLOR = (185, 65, 40)
 
 DATA_FOLDER_PATH = f'data'
-# TODO Diego: replace all of these instance of LANGUAGE, COUNTRY_CODE, LAB_NUMBER, etc. what the file name actually is
 RESULT_FOLDER_PATH = f'{EXP_ROOT_PATH}/data/eye_tracking_data_{DATA_COLLECTION_NAME}'
 
-IMAGE_CONFIG_PATH = (f'{EXP_ROOT_PATH}/data/stimuli_MultiplEYE_{LANGUAGE}_{COUNTRY_CODE}_{CITY}_{LAB_NUMBER}_{YEAR}/config/'
-                     f'config_{LANGUAGE}_{COUNTRY_CODE}_{CITY}_{LAB_NUMBER}_{YEAR}.py')
+IMAGE_CONFIG_PATH = (f'{EXP_ROOT_PATH}/data/stimuli_{DATA_COLLECTION_NAME}/config/'
+                     f'config_{DATA_COLLECTION_NAME}.py')
 
 IMAGE_CONFIG = run_path(str(EXP_ROOT_PATH / IMAGE_CONFIG_PATH))
 ############################################################
@@ -119,9 +113,9 @@ OPTION_5 = IMAGE_CONFIG['option_5']
 
 PQ_DATA_FOLDER_PATH = EXP_ROOT_PATH / 'data' / f'participant_questionnaire_{DATA_COLLECTION_NAME}'
 
-PQ_PARTICIPANT_INSTRUCTIONS_XLSX = PQ_DATA_FOLDER_PATH / f'multipleye_questionnaire_instructions_{LANGUAGE.lower()}.xlsx'
-PQ_QUESTIONS_XLSX = PQ_DATA_FOLDER_PATH / f'multipleye_questionnaire_questions_{LANGUAGE.lower()}.xlsx'
-PQ_LANGUAGES_XLSX = PQ_DATA_FOLDER_PATH / f'language_iso639_1_{LANGUAGE.lower()}.xlsx'
+PQ_PARTICIPANT_INSTRUCTIONS_XLSX = PQ_DATA_FOLDER_PATH / f'{DATA_COLLECTION_NAME}_questionnaire_instructions.xlsx'
+PQ_QUESTIONS_XLSX = PQ_DATA_FOLDER_PATH / f'{DATA_COLLECTION_NAME}_questionnaire_questions.xlsx'
+PQ_LANGUAGES_XLSX = PQ_DATA_FOLDER_PATH / 'language_iso639_1_it.xlsx'
 
 PQ_program_icon = EXP_ROOT_PATH / 'ui_data/interface_icons/program_icon.png'
 PQ_image_dir = EXP_ROOT_PATH / 'ui_data/interface_icons/running_icon_copy.png'
